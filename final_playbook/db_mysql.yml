@@ -1,0 +1,55 @@
+---
+- name: Install MySQL for production ready server
+  hosts: db
+  sudo: True
+  vars:
+    MySQL_root_pass: ReplaceWithYourPassword
+    DB_IP: 172.32.89.41
+  tasks:
+    - name: Set MySQL root password before installing
+      debconf: name='mysql-server' question='mysql-server/root_password' value='{{MySQL_root_pass | quote}}' vtype='password'
+    - name: Confirm MySQL root password before installing
+      debconf: name='mysql-server' question='mysql-server/root_password_again' value='{{MySQL_root_pass | quote}}' vtype='password'
+    - name: Install MySQL
+      apt: package={{ item }} state=installed force=yes update_cache=yes cache_valid_time=3600
+      with_items:
+        - mysql-server
+        - python-mysqldb
+    - name: Change bind-address /etc/mysql/my.cnf
+      replace:
+        path: /etc/mysql/my.cnf
+        regexp: 'bind-address\s*=.*'
+        replace: 'bind-address = {{ DB_IP }}'
+      notify:
+      - restart mysql
+  handlers:
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted
+
+- name: Add WordPress Database
+  hosts: db
+  sudo: True
+  vars:
+    wordpress_db: 'wordpress_db'
+    wordpress_user_name: 'WordpressUser'
+    wordpress_user_password: 'W0RDPR355U53R'
+    user_ip: '172.32.89.0/255.255.255.0'
+    db_root_pwd: ReplaceWithYourPassword
+  tasks:
+    - name: Create a new database for WordPress
+      mysql_db:
+        name: '{{ wordpress_db }}'
+        login_password: '{{ db_root_pwd }}'
+        state: present
+    - name: Create new user
+      mysql_user:
+        name: '{{ wordpress_user_name }}'
+        password: '{{ wordpress_user_password }}'
+        host: '{{ user_ip }}'
+        login_password: '{{ db_root_pwd }}'
+        priv: '{{ wordpress_db }}.*:ALL'
+        state: present
+
+

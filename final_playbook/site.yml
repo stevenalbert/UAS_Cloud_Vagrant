@@ -1,0 +1,63 @@
+---
+- name: Install site
+  hosts: 172.32.89.21
+  sudo: True
+  vars:
+    mount_dir: /gluster/www
+    down_dest_folder: /home/vagrant
+    latest_file_name: wordpress.tar.gz
+    dest_dir: /gluster/www/infuph.com
+    
+    db_name: 'wordpress_db'
+    db_password: 'W0RDPR355U53R'
+    db_user: 'WordpressUser'
+    db_host: '172.32.89.41'
+    auth_key: '+_PO16W1Kt,(.KQ*t!D#sucKCiYdC6 Jd^Q[9PBf92BJWJvF(-IPmg[KU0-qCg2<'
+    sec_auth_key: 'e-]y<}`}:>3ov(g{x0ce~G;aZ8U?%|F<Rul=(<F|bI ZR.Hf7wj#+8),>P0ju(OV'
+    logged_in_key: '6o@&0ee|2XI< -xnj}&^9~m@j.+/(.DhE%B<SVWD.=58Xs!@)8+[Sp98AY1,TP 5'
+    nonce_key: '(lZHNoJ^mR%.K.My;`S?3=?zP56?_ZC!FZIGKW0O/6R>$%d>, %/3Z>~JjW9[HN2'
+    auth_salt: 'JU*5HQ.X{&xhKp]y$ef>vLU1gumhflsf$l:Q:[Umpfpm[!4bgp+X_CQBd!5aH%WS'
+    sec_auth_salt: 'Z|TTc96<m56(?~OPAZrRxXhTzF-WS(0Cg7-*vi9,)/~[_eNk(ifpv39P|8](z6@{'
+    logged_in_salt: 'D2;cw-/yzMjx!6m*a+TZ+*zE>/+|17W`-Z#|PSa~aB`t2XpH/m3M6iC([n<9&E.y'
+    nonce_salt: '|aA$O;(E!-vF?&>b{6gp3vm /`R*+mi_+7flIBB{lELJ98JSnHi{sji}`uJUNn&|'
+  tasks:
+    - name: Create root site folder
+      file: "path={{ mount_dir }} state=directory mode=0775"
+
+    - name: Download wordpress
+      get_url:
+        url: 'https://wordpress.org/latest.tar.gz'
+        dest: '{{ down_dest_folder }}/{{ latest_file_name }}'
+        validate_certs: no
+
+    - name: Unarchive {{ latest_file_name }}
+      unarchive:
+        src: '{{ down_dest_folder }}/{{ latest_file_name }}'
+        dest: '{{ down_dest_folder }}/'
+        copy: no
+
+    - name: Copy wordpress to root
+      command: "cp -r {{ down_dest_folder }}/wordpress/. {{ dest_dir }}/"
+
+    - name: Copy wp-config-sample.php to wp-config.php
+      command: "cp {{ dest_dir }}/wp-config-sample.php {{ dest_dir }}/wp-config.php"
+
+    - name: Update WordPress config file
+      lineinfile:
+        dest="{{ dest_dir }}/wp-config.php"
+        regexp="{{ item.regexp }}"
+        line="{{ item.line }}"
+      with_items:
+        - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{db_name}}');"}
+        - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{db_user}}');"}
+        - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{db_password}}');"}
+        - {'regexp': "define\\('DB_HOST', '(.)+'\\);", 'line': "define('DB_HOST', '{{db_host}}');"}        
+        - {'regexp': "define\\('AUTH_KEY', '(.)+'\\);", 'line': "define('AUTH_KEY', '{{auth_key}}');"}        
+        - {'regexp': "define\\('SECURE_AUTH_KEY', '(.)+'\\);", 'line': "define('SECURE_AUTH_KEY', '{{sec_auth_key}}');"}
+        - {'regexp': "define\\('LOGGED_IN_KEY', '(.)+'\\);", 'line': "define('LOGGED_IN_KEY', '{{logged_in_key}}');"}        
+        - {'regexp': "define\\('NONCE_KEY', '(.)+'\\);", 'line': "define('NONCE_KEY', '{{nonce_key}}');"}        
+        - {'regexp': "define\\('AUTH_SALT', '(.)+'\\);", 'line': "define('AUTH_SALT', '{{auth_salt}}');"}
+        - {'regexp': "define\\('SECURE_AUTH_SALT', '(.)+'\\);", 'line': "define('SECURE_AUTH_SALT', '{{sec_auth_salt}}');"}        
+        - {'regexp': "define\\('LOGGED_IN_SALT', '(.)+'\\);", 'line': "define('LOGGED_IN_SALT', '{{logged_in_salt}}');"}        
+        - {'regexp': "define\\('NONCE_SALT', '(.)+'\\);", 'line': "define('NONCE_SALT', '{{nonce_salt}}');"}
+      sudo: yes

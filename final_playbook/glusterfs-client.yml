@@ -1,0 +1,28 @@
+---
+- hosts: web
+  sudo: True
+  vars:
+    mount_dir: '/gluster'
+    gluster_node: '172.32.89.51'
+    gluster_brick_name: gluster
+  tasks:
+    - name: install software-properties-common
+      apt: name=software-properties-common update_cache=yes
+
+    - name: add gluster 3.8 repository
+      apt_repository:
+        repo: 'ppa:gluster/glusterfs-3.8'
+
+    - name: Install glusterfs client
+      apt: name=glusterfs-client update_cache=yes
+
+    - name: Create mount folder
+      file: "path={{ mount_dir }} state=directory mode=0775"
+
+    - name: Mount gluster
+      mount:
+        name: '{{ mount_dir }}'
+        src: '{{ gluster_node }}:/{{ gluster_brick_name }}'
+        fstype: glusterfs
+        state: mounted
+

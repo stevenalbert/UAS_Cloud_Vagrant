@@ -1,0 +1,22 @@
+---
+- hosts: loadbalancer
+  sudo: True
+  tasks:
+    - name: install haproxy
+      apt: name=haproxy update_cache=yes
+
+    - name: Enable init script
+      replace: dest='/etc/default/haproxy' 
+               regexp='ENABLED=0'
+               replace='ENABLED=1'
+
+    - name: Configure haproxy
+      template:
+        src: hap.cfg
+        dest: /etc/haproxy/haproxy.cfg
+      notify:
+        - restart haproxy
+
+  handlers:
+    - name: restart haproxy
+      service: name=haproxy state=restarted

@@ -1,0 +1,14 @@
+---
+- hosts: gluster
+  sudo: True
+  tasks:
+    - name: install software-properties-common
+      apt: name=software-properties-common update_cache=yes
+
+    - name: add gluster 3.8 repository
+      apt_repository:
+        repo: 'ppa:gluster/glusterfs-3.8'
+
+    - name: install glusterfs-server
+      apt: name=glusterfs-server update_cache=yes
+
